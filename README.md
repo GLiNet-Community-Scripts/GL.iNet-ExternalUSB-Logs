@@ -1,22 +1,42 @@
-# GL.iNet/OpenWrt USB Log Mirror
+# GL.iNet USB Logs
 
-This project adds a **persistent USB mirror** of router logs for GL.iNet/OpenWrt while keeping default logging behavior untouched.
+A GL.iNet/OpenWrt companion script for **GL-XE300 (Puli)** and similar models that keeps default router logging intact while also writing a persistent copy of logs to USB storage.
 
-## What it does
+---
 
-- Keeps normal OpenWrt/GL.iNet logging behavior (`logd`, `logread`) unchanged.
-- Streams `logread -f` output to USB storage (default `/mnt/sda1/gl-usb-logs/system.log`).
-- Runs as an init.d service with procd respawn.
-- Handles USB-not-ready boot timing by waiting/retrying.
-- Rotates log file by size (default 5 MiB, keeps 5 rotated files).
+## ✅ What this script does
 
-## One-line install
+- Keeps the default OpenWrt logging pipeline untouched (`logd` ring buffer, standard `logread`).
+- Mirrors live logs to USB storage (default: `/mnt/sda1/gl-usb-logs/system.log`).
+- Starts automatically at boot using init.d/procd.
+- Survives USB timing issues at boot (waits/retries until USB is mounted and writable).
+- Adds size-based log rotation to reduce risk of filling USB.
+
+## ❌ What this script does **not** do
+
+- Does **not** change your normal log destination.
+- Does **not** replace `logd` with a single file logger.
+- Does **not** break or alter normal `logread` behavior.
+
+---
+
+## 🚀 One-line install
 
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/zippyy/GL.iNet-USB-Logs/main/install.sh)"
 ```
 
-## Manual install commands
+---
+
+## 📦 Installed files
+
+- `/usr/bin/usb-log-mirror.sh`
+- `/etc/init.d/usb-log-mirror`
+- USB log path (default): `/mnt/sda1/gl-usb-logs/system.log`
+
+---
+
+## 🔧 Manual install (exact commands)
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/zippyy/GL.iNet-USB-Logs/main/usb-log-mirror.sh -o /usr/bin/usb-log-mirror.sh
@@ -26,34 +46,57 @@ chmod +x /usr/bin/usb-log-mirror.sh /etc/init.d/usb-log-mirror
 /etc/init.d/usb-log-mirror restart
 ```
 
-(Use `wget -qO` equivalents if curl is unavailable.)
+> If `curl` is unavailable, replace with equivalent `wget -qO` commands.
 
-## Verify
+---
+
+## 🧪 Verification (exact commands)
 
 ```sh
-# Service is running
+# 1) Service state
 /etc/init.d/usb-log-mirror status
 
-# Normal logread still works
+# 2) Confirm normal logread still works
 logread | tail -n 20
 
-# Persistent copy on USB
+# 3) Confirm USB log files exist
 ls -lah /mnt/sda1/gl-usb-logs/
-tail -n 20 /mnt/sda1/gl-usb-logs/system.log
 
-# Generate a test entry
+# 4) Write a test entry and confirm it appears on USB
 logger -t usb-log-mirror-test "USB mirror verification $(date -Iseconds)"
 sleep 2
 grep -n "usb-log-mirror-test" /mnt/sda1/gl-usb-logs/system.log | tail -n 1
+
+# 5) Inspect the persistent mirror
+tail -n 20 /mnt/sda1/gl-usb-logs/system.log
 ```
 
-## Uninstall
+---
+
+## ⚙️ Defaults and tuning
+
+Current defaults:
+
+- `USB_MOUNT=/mnt/sda1`
+- `LOG_DIR=$USB_MOUNT/gl-usb-logs`
+- `LOG_FILE=$LOG_DIR/system.log`
+- `MAX_SIZE_KB=5120` (5 MiB)
+- `MAX_FILES=5`
+- `CHECK_INTERVAL=60` seconds
+
+If needed, these can be overridden by environment variables in the service command.
+
+---
+
+## 🗑 Uninstall
+
+### One-line uninstall
 
 ```sh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/zippyy/GL.iNet-USB-Logs/main/uninstall.sh)"
 ```
 
-or manually:
+### Manual uninstall
 
 ```sh
 /etc/init.d/usb-log-mirror stop
@@ -61,17 +104,18 @@ or manually:
 rm -f /etc/init.d/usb-log-mirror /usr/bin/usb-log-mirror.sh
 ```
 
-## Support-facing summary
+> Note: Uninstall does not delete existing USB log files. Remove `/mnt/sda1/gl-usb-logs/` manually if desired.
 
-"Your router keeps its normal logging in memory exactly as before, so `logread` continues to work normally. We additionally run a small background service that copies live log output to your USB drive at `/mnt/sda1/gl-usb-logs/system.log`, with automatic size-based rotation so the drive doesn’t fill up. If USB is missing during boot, normal logging is unaffected; the mirror starts automatically once USB is available."
+---
 
-## Optional tuning
+## 🧾 Support-facing message (copy/paste)
 
-Defaults can be overridden by setting environment variables in the init script command if needed:
+"Your router still logs exactly the normal GL.iNet/OpenWrt way, so `logread` works as usual. We additionally run a small startup service that mirrors logs to USB at `/mnt/sda1/gl-usb-logs/system.log` for persistence after reboot. If USB is not ready at boot, normal logging is unaffected and the mirror starts automatically when USB becomes available."
 
-- `USB_MOUNT` (default `/mnt/sda1`)
-- `LOG_DIR` (default `$USB_MOUNT/gl-usb-logs`)
-- `LOG_FILE` (default `$LOG_DIR/system.log`)
-- `MAX_SIZE_KB` (default `5120`)
-- `MAX_FILES` (default `5`)
-- `CHECK_INTERVAL` (default `60` seconds)
+---
+
+## 🧩 Compatibility
+
+- Designed for BusyBox ash / OpenWrt / GL.iNet firmware.
+- Validated for GL-XE300 (Puli) use case.
+- Expected USB mount pattern: `/mnt/sda1` (default), adjustable if your mount point differs.
