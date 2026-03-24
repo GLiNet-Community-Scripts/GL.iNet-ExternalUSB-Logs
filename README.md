@@ -23,7 +23,7 @@ A GL.iNet/OpenWrt companion script for **GL-XE300 (Puli)** and similar models th
 ## 🚀 One-line install
 
 ```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/zippyy/GL.iNet-USB-Logs/main/install.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/zippyy/GL.iNet-ExternalUSB-Logs/main/install.sh)"
 ```
 
 ---
