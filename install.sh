@@ -1,9 +1,10 @@
 #!/bin/sh
 set -e
 
-REPO_BASE="${REPO_BASE:-https://raw.githubusercontent.com/zippyy/GL.iNet-ExternalUSB-Logs/refs/heads/main}"
+REPO_BASE="${REPO_BASE:-https://raw.githubusercontent.com/zippyy/GL.iNet-ExternalUSB-Logs/main}"
 INIT_DST="/etc/init.d/usb-log-mirror"
 BIN_DST="/usr/bin/usb-log-mirror.sh"
+CONF_DST="/etc/usb-log-mirror.conf"
 
 fetch() {
     src="$1"
@@ -19,20 +20,22 @@ fetch() {
     fi
 }
 
-echo "Installing usb-log-mirror..."
+echo "[usb-log-mirror] Installing..."
 fetch "$REPO_BASE/usb-log-mirror.sh" "$BIN_DST"
 fetch "$REPO_BASE/usb-log-mirror.init" "$INIT_DST"
 
+if [ ! -f "$CONF_DST" ]; then
+    fetch "$REPO_BASE/usb-log-mirror.conf" "$CONF_DST"
+    echo "[usb-log-mirror] Installed default config at $CONF_DST"
+else
+    echo "[usb-log-mirror] Keeping existing config at $CONF_DST"
+fi
+
 chmod 0755 "$BIN_DST" "$INIT_DST"
+chmod 0644 "$CONF_DST"
 
-if [ -x "$INIT_DST" ]; then
-    "$INIT_DST" enable
-    "$INIT_DST" restart
-fi
+"$INIT_DST" enable
+"$INIT_DST" restart || true
 
-echo "Installed. Service status:"
-if [ -x "$INIT_DST" ]; then
-    "$INIT_DST" status || true
-fi
-
-echo "Done."
+echo "[usb-log-mirror] Done."
+"$INIT_DST" status || true
